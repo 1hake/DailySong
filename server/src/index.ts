@@ -46,26 +46,26 @@ async function searchDeezer(artist: string, track: string): Promise<string | nul
 
 // 🔁 créer les deep links
 function getDeepLinks({
-    spotify,
-    deezer,
-    youtube,
+    spotifyLink,
+    deezerLink,
+    youtubeLink,
 }: {
-    spotify?: string | null;
-    deezer?: string | null;
-    youtube?: string | null;
+    spotifyLink?: string | null;
+    deezerLink?: string | null;
+    youtubeLink?: string | null;
 }) {
     const extractSpotifyId = (url?: any) => url?.match(/track\/([a-zA-Z0-9]+)/)?.[1];
     const extractDeezerId = (url?: any) => url?.match(/track\/(\d+)/)?.[1];
     const extractYouTubeId = (url?: any) => url?.match(/[?&]v=([^&]+)/)?.[1];
 
-    const spotifyId = extractSpotifyId(spotify);
-    const deezerId = extractDeezerId(deezer);
-    const youtubeId = extractYouTubeId(youtube);
+    const spotifyId = extractSpotifyId(spotifyLink);
+    const deezerId = extractDeezerId(deezerLink);
+    const youtubeId = extractYouTubeId(youtubeLink);
 
     return {
         spotifyUri: spotifyId ? `spotify:track:${spotifyId}` : null,
         deezerUri: deezerId ? `deezer://www.deezer.com/track/${deezerId}` : null,
-        youtubeIntent: youtubeId ? `vnd.youtube:${youtubeId}` : null,
+        youtubeUri: youtubeId ? `vnd.youtube:${youtubeId}` : null,
     };
 }
 
@@ -81,15 +81,14 @@ app.get("/search", async (req: any, res: any) => {
     const ddgLinks = await searchDuckDuckGo(query);
     const deezerFallback = await searchDeezer(artist as string, track as string);
 
-    const spotify = ddgLinks.find((l) => l.includes("spotify.com")) || null;
-    const youtube = ddgLinks.find((l) => l.includes("youtube.com")) || null;
-    const deezer = ddgLinks.find((l) => l.includes("deezer.com")) || deezerFallback;
+    const spotifyLink = ddgLinks.find((l) => l.includes("spotify.com")) || null;
+    const youtubeLink = ddgLinks.find((l) => l.includes("youtube.com")) || null;
+    const deezerLink = ddgLinks.find((l) => l.includes("deezer.com")) || deezerFallback;
 
-    const uris = getDeepLinks({ spotify, deezer, youtube });
+    const { spotifyUri, deezerUri, youtubeUri } = getDeepLinks({ spotifyLink, deezerLink, youtubeLink });
 
     return res.json({
-        links: { spotify, deezer, youtube },
-        uris,
+        links: { spotifyUri, deezerUri, youtubeUri },
     });
 });
 
