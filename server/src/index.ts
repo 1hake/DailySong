@@ -78,9 +78,10 @@ app.get("/search", async (req: any, res: any) => {
     }
 
     const query = `${artist} ${track} site:spotify.com OR site:deezer.com OR site:youtube.com`;
+    // console.log(await fetch`https://api.song.link/v1-alpha.1/links?url=${track}&userCountry=FR`);
     const ddgLinks = await searchDuckDuckGo(query);
     const deezerFallback = await searchDeezer(artist as string, track as string);
-
+    console.log(ddgLinks);
     const spotifyLink = ddgLinks.find((l) => l.includes("spotify.com")) || null;
     const youtubeLink = ddgLinks.find((l) => l.includes("youtube.com")) || null;
     const deezerLink = ddgLinks.find((l) => l.includes("deezer.com")) || deezerFallback;
