@@ -1,8 +1,10 @@
 import express from "express";
 import axios from "axios";
 import { JSDOM } from "jsdom";
+import cors from "cors";
 
 const app = express();
+app.use(cors({ origin: "http://localhost:5173" }));
 
 // 🔧 decode les liens DuckDuckGo
 function decodeDuckLink(rawLink: string): string | null {
