@@ -81,7 +81,6 @@ app.get("/search", async (req: any, res: any) => {
     // console.log(await fetch`https://api.song.link/v1-alpha.1/links?url=${track}&userCountry=FR`);
     const ddgLinks = await searchDuckDuckGo(query);
     const deezerFallback = await searchDeezer(artist as string, track as string);
-    console.log(ddgLinks);
     const spotifyLink = ddgLinks.find((l) => l.includes("spotify.com")) || null;
     const youtubeLink = ddgLinks.find((l) => l.includes("youtube.com")) || null;
     const deezerLink = ddgLinks.find((l) => l.includes("deezer.com")) || deezerFallback;
@@ -94,7 +93,7 @@ app.get("/search", async (req: any, res: any) => {
 });
 
 // ▶️ Lance le serveur
-app.listen(3000, "0.0.0.0", () => {
+app.listen(3000, () => {
     console.log("Server is running");
     console.log("API running at http://0.0.0.0:3000/search");
 });
