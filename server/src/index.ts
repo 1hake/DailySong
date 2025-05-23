@@ -14,26 +14,30 @@ function decodeDuckLink(rawLink: string): string | null {
 
 // 🔍 scrape DuckDuckGo
 async function searchDuckDuckGo(query: string): Promise<string[]> {
-    const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
-    const res = await axios.get(url, {
-        headers: {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-        },
-    });
+    try {
+        const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
+        const res = await axios.get(url, {
+            headers: {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+            },
+        });
 
-    const dom = new JSDOM(res.data);
-    const document = dom.window.document;
+        const dom = new JSDOM(res.data);
+        const document = dom.window.document;
 
-    const links = Array.from(document.querySelectorAll("a"))
-        .map((a) => a.href)
-        .filter((href) => href.includes("duckduckgo.com/l/?uddg="))
-        .map(decodeDuckLink)
-        .filter(
-            (href: any): href is string =>
-                href.includes("spotify.com") || href.includes("deezer.com") || href.includes("youtube.com")
-        );
-
-    return [...new Set(links)];
+        const links = Array.from(document.querySelectorAll("a"))
+            .map((a) => a.href)
+            .filter((href) => href.includes("duckduckgo.com/l/?uddg="))
+            .map(decodeDuckLink)
+            .filter(
+                (href: any): href is string =>
+                    href.includes("spotify.com") || href.includes("deezer.com") || href.includes("youtube.com")
+            );
+        return [...new Set(links)];
+    } catch (error) {
+        console.error(error);
+        return [];
+    }
 }
 
 // 🔎 fallback Deezer API
@@ -42,7 +46,6 @@ async function searchDeezer(artist: string, track: string): Promise<string | nul
     const res = await axios.get("https://api.deezer.com/search", {
         params: { q: query },
     });
-
     return res.data?.data?.[0]?.link || null;
 }
 
@@ -63,10 +66,10 @@ function getDeepLinks({
     const spotifyId = extractSpotifyId(spotifyLink);
     const deezerId = extractDeezerId(deezerLink);
     const youtubeId = extractYouTubeId(youtubeLink);
-
+    console.log(deezerId);
     return {
         spotifyUri: spotifyId ? `spotify:track:${spotifyId}` : null,
-        deezerUri: deezerId ? `deezer://www.deezer.com/track/${deezerId}` : null,
+        deezerUri: deezerId ? `https://dzr.page.link/${deezerId}` : null,
         youtubeUri: youtubeId ? `vnd.youtube:${youtubeId}` : null,
     };
 }
@@ -80,17 +83,33 @@ app.get("/search", async (req: any, res: any) => {
     }
 
     const query = `${artist} ${track} site:spotify.com OR site:deezer.com OR site:youtube.com`;
-    // console.log(await fetch`https://api.song.link/v1-alpha.1/links?url=${track}&userCountry=FR`);
     const ddgLinks = await searchDuckDuckGo(query);
-    const deezerFallback = await searchDeezer(artist as string, track as string);
-    const spotifyLink = ddgLinks.find((l) => l.includes("spotify.com")) || null;
-    const youtubeLink = ddgLinks.find((l) => l.includes("youtube.com")) || null;
-    const deezerLink = ddgLinks.find((l) => l.includes("deezer.com")) || deezerFallback;
+    const deezerUrl = await searchDeezer(artist as string, track as string);
 
-    const { spotifyUri, deezerUri, youtubeUri } = getDeepLinks({ spotifyLink, deezerLink, youtubeLink });
+    const allLinks = await axios.get(`https://api.song.link/v1-alpha.1/links?url=${deezerUrl}&userCountry=FR`);
+    const allLinksObject = allLinks.data.entitiesByUniqueId as Record<string, any>;
+
+    let spotifyId = undefined;
+    let deezerId = undefined;
+    let youtubeId = undefined;
+
+    for (const key in allLinksObject) {
+        if (key.startsWith("SPOTIFY_SONG::")) {
+            spotifyId = key.replace("SPOTIFY_SONG::", "");
+        } else if (key.startsWith("DEEZER_SONG::")) {
+            deezerId = key.replace("DEEZER_SONG::", "");
+        } else if (key.startsWith("YOUTUBE_VIDEO::")) {
+            youtubeId = key.replace("YOUTUBE_VIDEO::", "");
+        }
+    }
+    // console.log(spotifyId, deezerId, youtubeId);
+
+    const spotifyLink = spotifyId ? `spotify:track:${spotifyId}` : null;
+    const deezerLink = deezerId ? `https://dzr.page.link/${deezerId}` : null;
+    const youtubeLink = youtubeId ? `https://music.youtube.com/watch?v=${youtubeId}` : null;
 
     return res.json({
-        links: { spotifyUri, deezerUri, youtubeUri },
+        links: { spotifyLink, deezerLink, youtubeLink },
     });
 });
 
