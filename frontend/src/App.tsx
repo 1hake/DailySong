@@ -6,13 +6,14 @@ function App() {
   const [track, setTrack] = useState("Papaoutai");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [platformLinks, setPlatformLinks] = useState<{ name: string; url: string }[]>([]);
+  const [links, setLinks] = useState<{ [key: string]: string | null }>({});
   const [songInfo, setSongInfo] = useState<any>(null);
 
+  console.log("App component rendered", links);
   const handleSearch = async () => {
     setLoading(true);
     setError(null);
-    setPlatformLinks([]);
+    setLinks({});
     setSongInfo(null);
     try {
       const url = `http://localhost:3000/search?artist=${encodeURIComponent(artist)}&track=${encodeURIComponent(
@@ -21,8 +22,8 @@ function App() {
       const response = await fetch(url);
       if (!response.ok) throw new Error("API error");
       const data = await response.json();
-      if (data && data.platformLinks) {
-        setPlatformLinks(data.platformLinks);
+      if (data && data.links) {
+        setLinks(data.links);
       }
       setSongInfo(data);
     } catch (err: any) {
@@ -99,13 +100,23 @@ function App() {
             {songInfo.year && <div style={{ color: '#64748b', fontSize: 14 }}>Year: {songInfo.year}</div>}
           </div>
         )}
-        {platformLinks.length > 0 && (
+        {/* Platform links from new API structure */}
+        {Object.keys(links).filter((key) => links[key]).length > 0 && (
           <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 16, justifyContent: 'center' }}>
-            {platformLinks.map((link) => (
-              <a key={link.name} href={link.url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', background: '#eef2ff', borderRadius: 8, padding: '6px 12px', boxShadow: '0 1px 4px rgba(99,102,241,0.06)' }}>
-                <img src={getPlatformIcon(link.name)} alt={link.name} style={{ width: 24, height: 24, marginRight: 8 }} />
-                <span style={{ color: '#6366f1', fontWeight: 600, fontSize: 15 }}>{link.name}</span>
-              </a>
+            {Object.entries(links).map(([key, uri]) => (
+              uri ? (
+                uri.startsWith('http') ? (
+                  <a key={key} href={uri} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', background: '#eef2ff', borderRadius: 8, padding: '6px 12px', boxShadow: '0 1px 4px rgba(99,102,241,0.06)' }}>
+                    <img src={getPlatformIcon(key)} alt={key} style={{ width: 24, height: 24, marginRight: 8 }} />
+                    <span style={{ color: '#6366f1', fontWeight: 600, fontSize: 15 }}>{getPlatformLabel(key)}</span>
+                  </a>
+                ) : (
+                  <button key={key} onClick={() => window.location.href = uri} style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', background: '#eef2ff', borderRadius: 8, padding: '6px 12px', boxShadow: '0 1px 4px rgba(99,102,241,0.06)', border: 'none', cursor: 'pointer' }}>
+                    <img src={getPlatformIcon(key)} alt={key} style={{ width: 24, height: 24, marginRight: 8 }} />
+                    <span style={{ color: '#6366f1', fontWeight: 600, fontSize: 15 }}>{getPlatformLabel(key)}</span>
+                  </button>
+                )
+              ) : null
             ))}
           </div>
         )}
@@ -119,18 +130,33 @@ function App() {
 function getPlatformIcon(name: string): string {
   switch (name.toLowerCase()) {
     case 'spotify':
+    case 'spotifyuri':
       return 'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/spotify.svg';
-    case 'apple music':
     case 'applemusic':
+    case 'applemusicuri':
       return 'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/applemusic.svg';
     case 'youtube':
+    case 'youtubeuri':
       return 'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/youtube.svg';
     case 'deezer':
+    case 'deezeruri':
       return 'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/deezer.svg';
     case 'soundcloud':
+    case 'soundclouduri':
       return 'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/soundcloud.svg';
     default:
       return 'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/link.svg';
+  }
+}
+
+function getPlatformLabel(name: string): string {
+  switch (name.toLowerCase()) {
+    case 'spotifyuri': return 'Spotify';
+    case 'deezeruri': return 'Deezer';
+    case 'youtubeuri': return 'YouTube';
+    case 'applemusicuri': return 'Apple Music';
+    case 'soundclouduri': return 'SoundCloud';
+    default: return name;
   }
 }
 
