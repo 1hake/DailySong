@@ -6,10 +6,48 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+/// Utilisateurs anonymes ou identifiés (alias + éventuels tokens OAuth Spotify)
+model User {
+  id        String   @id @default(uuid())
+  alias     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Pour le Master quand il est connecté à l'application
+  appRefreshToken String?
+  // Relations
+  following       User[]  @relation("UserFollows")
+  followers       User[]  @relation("UserFollows")
+  dailyTracks     Track[] // Les tracks quotidiennes de l'utilisateur
+
+  @@index([alias])
+}
+
+// Une track par jour par utilisateur
+model Track {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  // Liens vers les plateformes
+  spotifyUrl String?
+  deezerUrl  String?
+  youtubeUrl String?
+
+  // Métadonnées de la track
+  artist String
+  title  String
+
+  // Relation avec l'utilisateur
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@unique([userId, createdAt]) // Un seul track par jour par utilisateur
+  @@index([userId, createdAt])
 }

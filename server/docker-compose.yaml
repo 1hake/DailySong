@@ -1,0 +1,30 @@
+version: "3.8"
+
+services:
+    db:
+        image: postgres:14
+        restart: always
+        environment:
+            POSTGRES_USER: postgres
+            POSTGRES_PASSWORD: postgres
+            POSTGRES_DB: listening-aggregator
+        ports:
+            - "5432:5432"
+        volumes:
+            - postgres-data:/var/lib/postgresql/data
+    app:
+        build: .
+        restart: always
+        ports:
+            - "5001:5001"
+            - "5555:5555" # Open port for Prisma Studio
+        depends_on:
+            - db
+        environment:
+            DATABASE_URL: ${DATABASE_URL}
+        volumes:
+            - .:/usr/src/app
+        command: "yarn start"
+
+volumes:
+    postgres-data:

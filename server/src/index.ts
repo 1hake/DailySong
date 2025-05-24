@@ -1,7 +1,8 @@
 import express from "express";
 import axios from "axios";
-import { JSDOM } from "jsdom";
 import cors from "cors";
+import { PrismaClient } from "@prisma/client";
+export const prisma = new PrismaClient();
 
 const app = express();
 app.use(cors({ origin: "http://localhost:5173" }));
@@ -14,6 +15,20 @@ async function searchDeezer(artist: string, track: string): Promise<string | nul
     });
     return res.data?.data?.[0]?.link || null;
 }
+
+//ajouter le daily song a un user et ajouter le lien de toutes les plateformes qui sont liés
+app.post("/daily-song", async (req: any, res: any) => {
+    const { spotifyLink, deezerLink, youtubeLink } = req.body;
+    const { user } = req.user;
+
+    // const track = await prisma.track.create({
+    //     data: {
+    //         spotifyLink,
+    //         deezerLink,
+    //         youtubeLink,
+    //     },
+    // });
+});
 
 // 📡 Route principale
 app.get("/search", async (req: any, res: any) => {
